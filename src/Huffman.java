@@ -1,56 +1,81 @@
 import java.io.*;
 import java.time.Clock;
+import java.util.ArrayList;
 
 /**
  * Created by marcoghilardelli on 09.05.16.
  */
 public class Huffman {
-    public class Node {
-        public char character;
-        public int count;
-        public Node left;
-        public Node right;
+    public static class Knoten {
+        public char ascii;
+        public int anzahl;
+        public Knoten links;
+        public Knoten rechts;
 
-        public Node(char character, int count, Node left, Node right) {
-            this.character = character;
-            this.count = count;
-            this.left = left;
-            this.right = right;
+        public Knoten(char ascii, int anzahl, Knoten links, Knoten rechts) {
+            this.ascii = ascii;
+            this.anzahl = anzahl;
+            this.links = links;
+            this.rechts = rechts;
+
         }
     }
 
-    public static Node[] table = new Node[128];
+    public static int[][] table = new int[128][2];
 
-    public Huffman() {
-        for(int i = 0; i < table.length; i++) {
-            table[i] = new Node((char)i, 0, null, null);
-        }
 
-    }
+
     public static void main(String[] args) {
 
-        int count = 0; // counter for ascii symbols
+        initTable(table);
 
         String text = readTextfile("text.txt");
 
-        Huffman huff = new Huffman();
-        for(int i = 0; i < text.length(); ++i) {
-            for(int j = 0; j < table.length; j++) {
-                if(table[j].character == text.charAt(i)) {
-                    table[j].count++;
-                    count++;
-                }
-            }
+        fillTable(text, table);
 
+        sortTable(table);
+
+        table = deleteEmpty(table);
+
+        print(table);
+
+        buildTree(table);
+
+
+    }
+
+    public static void buildTree(int[][] array) {
+        ArrayList<Knoten> tree = new ArrayList<>();
+
+        // erster Knoten erstellen
+        Knoten ersterKnoten = new Knoten((char)array[0][0], array[0][1], null, null);
+        Knoten zweiterKnoten = new Knoten((char)array[1][0], array[1][1], null, null);
+        // dem Baum hinzufügen
+        tree.add(new Knoten((char)array[2][0], array[2][1], ersterKnoten, zweiterKnoten));
+
+        for(int i = 2; i < table.length; i++) {
+            tree.add(new Knoten((char)array[i][0], array[i][1], null, null));
         }
-        table = sort(table);
+    }
 
-        for(int i = 0; i < table.length; ++i) {
-            System.out.println((char)table[i].character + " " + table[i].count);
+    public static void initTable(int[][] array) {
+        for(int i = 0; i < array.length; i++) {
+            array[i][0] = i;
+            array[i][1] = 0;
         }
 
+    }
 
+    public static void print(int[][] array) {
+        for(int i = 0; i < array.length; ++i) {
+            System.out.println((char)array[i][0] + " " + array[i][1]);
+        }
+    }
 
+    public static void fillTable(String text, int[][] table) {
+        for(int i = 0; i < text.length(); i++) {
+            table[text.charAt(i)][1]++;
+        }
     }
 
     public static String readTextfile(String fileName) {
@@ -87,17 +112,37 @@ public class Huffman {
         return bFile;
 
     }
-    public static Node[] sort(Node[] array) {
-        Node tempNode;
+    public static void sortTable(int[][] array) {
+        int[] temp = new int[2];
         for (int i = 1; i < array.length; i++) {
             for (int j = 0; j < array.length - i; j++) {
-                if (array[j].count > array[j + 1].count) {
-                    tempNode = array[j];
-                    array[j] = array[j + 1];
-                    array[j + 1] = tempNode;
+                if (array[j][1] > array[j+1][1]) {
+                    temp[0] = array[j][0];
+                    temp[1] = array[j][1];
+                    array[j][0] = array[j+1][0];
+                    array[j][1] = array[j+1][1];
+                    array[j+1][0] = temp[0];
+                    array[j+1][1] = temp[1];
                 }
             }
         }
-        return array;
+    }
+
+    public static int[][] deleteEmpty(int[][] array) {
+        int firstFilled = -1, countFilled;
+        int[][] temp;
+        for(int i = 0; i < array.length; i++) {
+            if(array[i][1] != 0 && firstFilled ==  -1) {
+                firstFilled = i;
+            }
+        }
+        countFilled = array.length - firstFilled; // oder weniger/mehr
+        temp = new int[countFilled][2];
+
+        for(int i = 0; i < temp.length; i++) {
+            temp[i][0] = array[firstFilled][0];
+            temp[i][1] = array[firstFilled++][1];
+        }
+        return temp;
     }
 }
