@@ -52,10 +52,13 @@ public class Huffman {
         //print(table);
 
         Knoten myTree=  buildTree(table);
-        String code = "";
-        buildCode(myTree, code);
+        String[] codeTable = new String[128];
+        buildCode(codeTable, myTree, "");
 
-        System.out.println(code);
+        for(int i = 0; i < codeTable.length; i++) {
+            System.out.println((char)i + ":" + codeTable[i]);
+        }
+        //System.out.println(myTree.links.links.code);
 
         //System.out.println((int)myTree.ascii + " " + myTree.anzahl + ":" + (int)myTree.links.ascii + " " + myTree.links.anzahl);
 
@@ -68,13 +71,14 @@ public class Huffman {
 
         // alle ascii Zeichen in den Baum einfügen
         for(int i = 0; i < array.length; i++) {
-            Knoten newKnoten = new Knoten(i, array[i], null, null);
-            tree.add(newKnoten);
+            if(array[i] != 0) {
+                Knoten newKnoten = new Knoten(i, array[i], null, null);
+                tree.add(newKnoten);
+            }
         }
 
         while(tree.size() > 1) {
             Knoten links = tree.poll();
-
             Knoten rechts = tree.poll();
             tree.add(new Knoten(0, links.anzahl + rechts.anzahl, links, rechts));
         }
@@ -83,11 +87,13 @@ public class Huffman {
 
     }
 
-    public static void buildCode(Knoten knoten, String code) {
-        if(knoten != null) {
-            buildCode(knoten.links, code + 0);
-            knoten.code += code;
-            buildCode(knoten.rechts, code + 1);
+    public static void buildCode(String[] table, Knoten knoten, String code) {
+        if(knoten.links != null && knoten.rechts != null) {
+            buildCode(table, knoten.links, code + "0");
+            buildCode(table, knoten.rechts, code + "1");
+        }
+        else {
+            table[knoten.ascii] = code;
         }
     }
 
