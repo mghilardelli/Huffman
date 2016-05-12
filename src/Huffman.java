@@ -1,27 +1,39 @@
 import java.io.*;
-import java.time.Clock;
-import java.util.ArrayList;
+import java.util.PriorityQueue;
 
 /**
  * Created by marcoghilardelli on 09.05.16.
  */
 public class Huffman {
-    public static class Knoten {
-        public char ascii;
+    public static class Knoten implements Comparable<Knoten> {
+
+        public int ascii;
         public int anzahl;
         public Knoten links;
         public Knoten rechts;
+        public String code;
 
-        public Knoten(char ascii, int anzahl, Knoten links, Knoten rechts) {
+        public Knoten(int ascii, int anzahl, Knoten links, Knoten rechts) {
+            this.code = "";
             this.ascii = ascii;
             this.anzahl = anzahl;
             this.links = links;
             this.rechts = rechts;
+        }
 
+        public boolean isBlatt() {
+            return this.links == null && this.rechts == null;
+        }
+        @Override
+        public int compareTo(Knoten comp) {
+            if(this.anzahl == comp.anzahl)
+                return 0;
+            else
+            return 1;
         }
     }
 
-    public static int[][] table = new int[128][2];
+    public static int[] table = new int[128];
 
 
 
@@ -33,35 +45,55 @@ public class Huffman {
 
         fillTable(text, table);
 
-        sortTable(table);
+        //sortTable(table);
 
-        table = deleteEmpty(table);
+        //table = deleteEmpty(table);
 
-        print(table);
+        //print(table);
 
-        buildTree(table);
+        Knoten myTree=  buildTree(table);
+        String code = "";
+        buildCode(myTree, code);
+
+        System.out.println(code);
+
+        //System.out.println((int)myTree.ascii + " " + myTree.anzahl + ":" + (int)myTree.links.ascii + " " + myTree.links.anzahl);
+
 
 
     }
 
-    public static void buildTree(int[][] array) {
-        ArrayList<Knoten> tree = new ArrayList<>();
+    public static Knoten buildTree(int[] array) {
+        PriorityQueue<Knoten> tree = new PriorityQueue<>();
 
-        // erster Knoten erstellen
-        Knoten ersterKnoten = new Knoten((char)array[0][0], array[0][1], null, null);
-        Knoten zweiterKnoten = new Knoten((char)array[1][0], array[1][1], null, null);
-        // dem Baum hinzufügen
-        tree.add(new Knoten((char)array[2][0], array[2][1], ersterKnoten, zweiterKnoten));
+        // alle ascii Zeichen in den Baum einfügen
+        for(int i = 0; i < array.length; i++) {
+            Knoten newKnoten = new Knoten(i, array[i], null, null);
+            tree.add(newKnoten);
+        }
 
-        for(int i = 2; i < table.length; i++) {
-            tree.add(new Knoten((char)array[i][0], array[i][1], null, null));
+        while(tree.size() > 1) {
+            Knoten links = tree.poll();
+
+            Knoten rechts = tree.poll();
+            tree.add(new Knoten(0, links.anzahl + rechts.anzahl, links, rechts));
+        }
+        return tree.poll();
+
+
+    }
+
+    public static void buildCode(Knoten knoten, String code) {
+        if(knoten != null) {
+            buildCode(knoten.links, code + 0);
+            knoten.code += code;
+            buildCode(knoten.rechts, code + 1);
         }
     }
 
-    public static void initTable(int[][] array) {
+    public static void initTable(int[] array) {
         for(int i = 0; i < array.length; i++) {
-            array[i][0] = i;
-            array[i][1] = 0;
+            array[i] = 0;
         }
 
     }
@@ -72,9 +104,9 @@ public class Huffman {
         }
     }
 
-    public static void fillTable(String text, int[][] table) {
+    public static void fillTable(String text, int[] table) {
         for(int i = 0; i < text.length(); i++) {
-            table[text.charAt(i)][1]++;
+            table[text.charAt(i)]++;
         }
     }
 
@@ -143,6 +175,7 @@ public class Huffman {
             temp[i][0] = array[firstFilled][0];
             temp[i][1] = array[firstFilled++][1];
         }
+
         return temp;
     }
 }
