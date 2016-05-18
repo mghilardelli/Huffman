@@ -2,7 +2,7 @@ import java.io.*;
 import java.util.PriorityQueue;
 
 /**
- * Created by marcoghilardelli on 09.05.16.
+ * Created by marcoghilardelli on 06.05.16.
  */
 public class Huffman {
     public static class Knoten implements Comparable<Knoten> {
@@ -11,25 +11,17 @@ public class Huffman {
         public int anzahl;
         public Knoten links;
         public Knoten rechts;
-        public String code;
 
         public Knoten(int ascii, int anzahl, Knoten links, Knoten rechts) {
-            this.code = "";
             this.ascii = ascii;
             this.anzahl = anzahl;
             this.links = links;
             this.rechts = rechts;
         }
 
-        public boolean isBlatt() {
-            return this.links == null && this.rechts == null;
-        }
         @Override
         public int compareTo(Knoten comp) {
-            if(this.anzahl == comp.anzahl)
-                return 0;
-            else
-            return 1;
+            return this.anzahl - comp.anzahl;
         }
     }
 
@@ -44,12 +36,24 @@ public class Huffman {
         String text = readTextfile("text.txt");
 
         fillTable(text, table);
+        /*for(int i = 0; i < table.length; i++) {
+            System.out.println((char)i + ":" + table[i]);
+        }*/
 
-        //sortTable(table);
+        PriorityQueue<Knoten> tree = new PriorityQueue<>();
 
-        //table = deleteEmpty(table);
+        // alle ascii Zeichen in den Baum einfügen
+        for(int i = 0; i < table.length; i++) {
+            if(table[i] != 0) {
+                Knoten newKnoten = new Knoten(i, table[i], null, null);
+                tree.add(newKnoten);
+            }
+        }
+        while(!tree.isEmpty()) {
+            Knoten temp = tree.poll();
 
-        //print(table);
+            System.out.println((char)temp.ascii + ":" +temp.anzahl);
+        }
 
         Knoten myTree=  buildTree(table);
         String[] codeTable = new String[128];
@@ -58,11 +62,16 @@ public class Huffman {
         for(int i = 0; i < codeTable.length; i++) {
             System.out.println((char)i + ":" + codeTable[i]);
         }
-        //System.out.println(myTree.links.links.code);
 
-        //System.out.println((int)myTree.ascii + " " + myTree.anzahl + ":" + (int)myTree.links.ascii + " " + myTree.links.anzahl);
+        saveCode("dec_tab.txt", codeTable);
 
+        System.out.println(encode(codeTable, text));
 
+        byte[] byteArray = createByteArray(encode(codeTable, text));
+
+        writeByteArray("output.dat", byteArray);
+
+        //decode();
 
     }
 
@@ -97,6 +106,39 @@ public class Huffman {
         }
     }
 
+    public static void saveCode(String fileName, String[] codeTable) {
+        String text = "";
+        try {
+            BufferedWriter bw = new BufferedWriter(new FileWriter(new File(fileName)));
+            for(int i = 0; i < codeTable.length; i++) {
+                if(codeTable[i] != null)
+                    text += i + ":" + codeTable[i] + "-";
+            }
+
+            bw.write(text);
+            bw.close();
+
+        }catch(IOException e) {
+            System.out.println(e);
+        }
+
+    }
+
+    public static String encode(String[] codeTable, String text) {
+        String code = "";
+        for(int i = 0; i < text.length(); i++) {
+            code += codeTable[text.toCharArray()[i]];
+        }
+
+        code += "1";
+
+        while(code.length() % 8 != 0) {
+            code += "0";
+        }
+
+        return code;
+    }
+
     public static void initTable(int[] array) {
         for(int i = 0; i < array.length; i++) {
             array[i] = 0;
@@ -104,10 +146,57 @@ public class Huffman {
 
     }
 
-    public static void print(int[][] array) {
-        for(int i = 0; i < array.length; ++i) {
-            System.out.println((char)array[i][0] + " " + array[i][1]);
+    public static byte[] createByteArray(String code) {
+        byte[] byteArray = new byte[code.length() / 8];
+        for(int i = 0; i < byteArray.length; i++) {
+            String byteString = code.substring(i * 8, (i*8) +8);
+            byteArray[i] = (byte)Integer.parseInt(byteString, 2);
+
         }
+        return byteArray;
+    }
+
+    public static void writeByteArray(String fileName, byte[] out) {
+        try {
+            FileOutputStream fos = new FileOutputStream(fileName);
+            fos.write(out);
+            fos.close();
+        }catch(IOException e) {
+            System.out.println(e);
+        }
+    }
+
+    public static void decode() {
+        byte[] bFile;
+        String codeStream = "";
+        try {
+            File f1 = new File("output.dat");
+            File f2 = new File("dec_tab.txt");
+            bFile = new byte[(int) f1.length()];
+            FileInputStream fis = new FileInputStream(f1);
+            BufferedReader br = new BufferedReader(new FileReader(f2));
+            codeStream = br.readLine();
+            fis.read(bFile);
+            br.close();
+            fis.close();
+        }
+        catch(IOException e) {
+            System.out.println(e);
+        }
+
+        String[] asciiCode = codeStream.split("-");
+        String[] codeTable = new String[asciiCode.length];
+        for(int i = 0; i < asciiCode.length; i++) {
+            char ascii = asciiCode[i].charAt(0);
+            codeTable[ascii] = asciiCode[i].split(":")[1];
+        }
+
+        for(int i = 0; i < codeTable.length; i++) {
+            System.out.println(i + ":" +codeTable[i]);
+        }
+
+
+
     }
 
     public static void fillTable(String text, int[] table) {
@@ -131,57 +220,4 @@ public class Huffman {
         return text;
     }
 
-    public static byte[] readFile(String fileName) {
-        File file = new File(fileName);
-
-        byte[] bFile = new byte[(int) file.length()];
-        try {
-
-            FileInputStream fis = new FileInputStream(file);
-
-            fis.read(bFile);
-
-            fis.close();
-
-        }
-        catch(IOException e) {
-            System.out.println(e.getMessage());
-        }
-        return bFile;
-
-    }
-    public static void sortTable(int[][] array) {
-        int[] temp = new int[2];
-        for (int i = 1; i < array.length; i++) {
-            for (int j = 0; j < array.length - i; j++) {
-                if (array[j][1] > array[j+1][1]) {
-                    temp[0] = array[j][0];
-                    temp[1] = array[j][1];
-                    array[j][0] = array[j+1][0];
-                    array[j][1] = array[j+1][1];
-                    array[j+1][0] = temp[0];
-                    array[j+1][1] = temp[1];
-                }
-            }
-        }
-    }
-
-    public static int[][] deleteEmpty(int[][] array) {
-        int firstFilled = -1, countFilled;
-        int[][] temp;
-        for(int i = 0; i < array.length; i++) {
-            if(array[i][1] != 0 && firstFilled ==  -1) {
-                firstFilled = i;
-            }
-        }
-        countFilled = array.length - firstFilled; // oder weniger/mehr
-        temp = new int[countFilled][2];
-
-        for(int i = 0; i < temp.length; i++) {
-            temp[i][0] = array[firstFilled][0];
-            temp[i][1] = array[firstFilled++][1];
-        }
-
-        return temp;
-    }
 }
